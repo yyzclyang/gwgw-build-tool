@@ -6,23 +6,11 @@ import * as shell from 'shelljs';
 
 type DirBranchInfo = { path: string; branch: Array<string>; current: string };
 
-const getDirBranchInfoByDirPath = (
-  dirPath: string,
-  branch: string
-): Promise<DirBranchInfo> => {
+const getDirBranchInfoByDirPath = (dirPath: string): Promise<DirBranchInfo> => {
   const git = simplegit(dirPath);
   return git
     .branchLocal()
     .then((branchInfo) => {
-      // if (branchInfo.current !== branch) {
-      //   return git.checkout(branch).then(() => {
-      //     return {
-      //       path: dirPath,
-      //       branch: branchInfo.all,
-      //       current: branchInfo.current
-      //     };
-      //   });
-      // }
       return {
         path: dirPath,
         branch: branchInfo.all,
@@ -40,14 +28,38 @@ const getDirBranchInfoByDirPath = (
 
 const getDirPathByBranch = (checkedDir: string[], branch: string) => {
   return Promise.all(
-    checkedDir.map((dirPath: string) =>
-      getDirBranchInfoByDirPath(dirPath, branch)
-    )
+    checkedDir.map((dirPath: string) => getDirBranchInfoByDirPath(dirPath))
   ).then((dirBranchInfoArr) =>
     dirBranchInfoArr.filter((dirBranchInfo) =>
       dirBranchInfo.branch.includes(branch)
     )
   );
+};
+
+const buildProject = (path: string) => {
+  const projectName = path.split('/').pop();
+  console.log(`项目 ${projectName} 开始执行打包...`);
+  shell.cd(path);
+  if (shell.exec(`yarn build`).code !== 0) {
+    shell.echo(`项目 ${projectName} 打包错误`);
+    shell.exit(1);
+  }
+  shell.cd('..');
+  console.log(`项目 ${projectName} 打包完毕`);
+};
+
+const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
+  console.log('开始拷贝打包文件');
+  shell.cd(path.resolve(process.cwd(), '.'));
+  shell.rm('-rf', './gwgw-build-dist');
+  const copyDir = dirBranchInfoArr.map((dirBranchInfo) => {
+    return dirBranchInfo.path + '/dist/*';
+  });
+  const targetDir = path.resolve(process.cwd(), './gwgw-build-dist');
+  shell.mkdir('-p', targetDir);
+  shell.cp('-Rf', copyDir, targetDir);
+  console.log('拷贝完毕');
+  shell.exit(0);
 };
 
 const performBuildCommand = (
@@ -57,14 +69,16 @@ const performBuildCommand = (
   dirBranchInfoArr.map((dirBranchInfo) => {
     if (dirBranchInfo.current !== version) {
       const git = simplegit(dirBranchInfo.path);
-      git.checkout(version).then(() => {
-        console.log('执行打包');
-        // shell.exec(`cd ${dirBranchInfo.path} && yarn build`);
+      return git.checkout(version).then(() => {
+        buildProject(dirBranchInfo.path);
       });
     } else {
-      console.log('暂不执行打包');
+      buildProject(dirBranchInfo.path);
     }
   });
+  console.log('全部打包完毕');
+  copyBuildFile(dirBranchInfoArr);
+  process.exit(0);
 };
 
 const askBuildProject = (
@@ -77,12 +91,12 @@ const askBuildProject = (
       name: 'project',
       message: '请选择你要进行打包的仓库?',
       choices: [
-        { name: '1. 全部', value: 'all' },
-        { name: '2. 自定义选择', value: 'custom' },
+        { name: '-  全部', value: 'all' },
+        { name: '-  自定义选择', value: 'custom' },
         ...dirBranchInfoArr.map((dirBranchInfo, index) => {
           const dirName = dirBranchInfo.path.split('/').pop();
           return {
-            name: `${index + 3}. ${dirName}`,
+            name: `${index + 1}. ${dirName}`,
             value: String(index)
           };
         })
@@ -119,9 +133,8 @@ const askBuildProject = (
           }
           break;
         default: {
-          const projectIndex = parseInt(select.project, 10);
           performBuildCommand(
-            dirBranchInfoArr.slice(projectIndex, projectIndex + 1),
+            [dirBranchInfoArr[parseInt(select.project, 10)]],
             branch
           );
         }
@@ -130,7 +143,7 @@ const askBuildProject = (
 };
 
 const build = (version: string) => {
-  const buildPath = path.resolve(process.cwd(), '../*');
+  const buildPath = path.resolve(process.cwd(), './*');
   const buildDir = glob.sync(buildPath);
   getDirPathByBranch(buildDir, version).then((dirBranchInfoArr) => {
     askBuildProject(dirBranchInfoArr, version);
