@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as commander from 'commander';
+import { askCommand } from './main';
 
 const program = new commander.Command();
 
@@ -10,5 +11,9 @@ program
     const version = args.slice(0, -1)[0];
     console.log(version);
   });
+
+if (process.argv.length === 2) {
+  void askCommand();
+}
 
 program.parse(process.argv);
