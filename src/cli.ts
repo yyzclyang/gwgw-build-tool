@@ -7,7 +7,7 @@ program
   .command('build')
   .description('start build')
   .action((...args) => {
-    const version = args[1][0];
+    const version = args[1] ? args[1][0] : undefined;
     if (version) {
       build(version);
     } else {

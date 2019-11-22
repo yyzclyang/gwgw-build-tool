@@ -65,7 +65,7 @@ const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
 
 const performBuildCommand = (
   dirBranchInfoArr: Array<DirBranchInfo>,
-  version: string
+  branch: string
 ) => {
   console.log(
     colors.red(
@@ -74,9 +74,9 @@ const performBuildCommand = (
   );
   const startTime = new Date().getTime();
   dirBranchInfoArr.map((dirBranchInfo) => {
-    if (dirBranchInfo.current !== version) {
+    if (dirBranchInfo.current !== branch) {
       const git = simplegit(dirBranchInfo.path);
-      return git.checkout(version).then(() => {
+      return git.checkout(branch).then(() => {
         buildProject(dirBranchInfo.path);
       });
     } else {
@@ -160,16 +160,21 @@ const build = (version: string) => {
   const buildPath = path.resolve(process.cwd(), './*');
   const buildDir = glob.sync(buildPath);
   getDirPathByBranch(buildDir, version).then((dirBranchInfoArr) => {
-    askBuildProject(dirBranchInfoArr, version);
+    if (dirBranchInfoArr.length === 0) {
+      console.log(colors.red(`没有符合仓库有当前版本的分支\n`));
+      askVersion(true);
+    } else {
+      askBuildProject(dirBranchInfoArr, version);
+    }
   });
 };
 
-const askVersion = () => {
+const askVersion = (again = false) => {
   inquirer
     .prompt({
       type: 'input',
       name: 'version',
-      message: '请输入要打包的版本：'
+      message: `请${again ? '重新' : ''}输入要打包的版本：`
     })
     .then((task: { version: string }) => {
       if (task.version === '') {
