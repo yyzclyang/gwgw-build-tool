@@ -2,9 +2,23 @@
   "name": "gwgw-build-tool",
   "version": "0.0.1",
   "main": "index.js",
+  "bin": {
+    "gwbt": "dist/cli.js"
+  },
+  "scripts": {
+    "start": "npx ts-node-dev src/main.ts",
+    "gwbt": "npx ts-node-dev src/cli.ts"
+  },
+  "files": [
+    "dist/**/*.js"
+  ],
   "license": "MIT",
   "dependencies": {
-    "commander": "^4.0.1"
+    "@types/glob": "^7.1.1",
+    "@types/inquirer": "^6.5.0",
+    "commander": "^4.0.1",
+    "glob": "^7.1.6",
+    "inquirer": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^12.12.11",
