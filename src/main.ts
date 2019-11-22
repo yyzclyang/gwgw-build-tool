@@ -3,38 +3,57 @@ import * as inquirer from 'inquirer';
 import * as path from 'path';
 import simplegit from 'simple-git/promise';
 
-const getGitBranchByDirPath = (
-  dirPath: string
-): Promise<{ path: string; branch: Array<string> }> => {
+type DirBranchInfo = { path: string; branch: Array<string>; current: string };
+
+const getDirBranchInfoByDirPath = (dirPath: string): Promise<DirBranchInfo> => {
   const git = simplegit(dirPath);
   return git
     .branchLocal()
     .then((branchInfo) => {
-      return { path: dirPath, branch: branchInfo.all };
+      return {
+        path: dirPath,
+        branch: branchInfo.all,
+        current: branchInfo.current
+      };
     })
     .catch(() => {
       return {
         path: dirPath,
-        branch: []
+        branch: [],
+        current: ''
       };
     });
 };
 
 const getDirPathByBranch = (checkedDir: string[], branch: string) => {
   return Promise.all(
-    checkedDir.map((dirPath: string) => getGitBranchByDirPath(dirPath))
-  ).then((dirsBranchInfo) =>
-    dirsBranchInfo.filter((dirBranchInfo) =>
+    checkedDir.map((dirPath: string) => getDirBranchInfoByDirPath(dirPath))
+  ).then((dirBranchInfoArr) =>
+    dirBranchInfoArr.filter((dirBranchInfo) =>
       dirBranchInfo.branch.includes(branch)
     )
   );
 };
 
+const performBuild = (dirBranchInfo: DirBranchInfo, version: string) => {
+  if (dirBranchInfo.current !== version) {
+    const git = simplegit(dirBranchInfo.path);
+    git.checkout(version).then(() => {
+      console.log('执行打包');
+    });
+  } else {
+    console.log('执行打包');
+  }
+};
+
 const build = (version: string) => {
   const buildPath = path.resolve(process.cwd(), '../*');
   const buildDir = glob.sync(buildPath);
-  getDirPathByBranch(buildDir, version).then((res) => {
-    console.log(res);
+  getDirPathByBranch(buildDir, version).then((dirBranchInfoArr) => {
+    console.log(dirBranchInfoArr);
+    dirBranchInfoArr.map((dirBranchInfo) => {
+      performBuild(dirBranchInfo, version);
+    });
   });
 };
 
@@ -50,7 +69,6 @@ const askVersion = () => {
         askVersion();
       } else {
         build(task.version);
-        console.log(task);
       }
     });
 };
