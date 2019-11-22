@@ -18,7 +18,8 @@
     "@types/inquirer": "^6.5.0",
     "commander": "^4.0.1",
     "glob": "^7.1.6",
-    "inquirer": "^7.0.0"
+    "inquirer": "^7.0.0",
+    "simple-git": "^1.126.0"
   },
   "devDependencies": {
     "@types/node": "^12.12.11",
