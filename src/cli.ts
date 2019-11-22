@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import * as commander from 'commander';
-import { askCommand, askVersion } from './main';
-
+import { build, askCommand, askVersion } from './main';
 const program = new commander.Command();
 
 program
@@ -10,6 +9,7 @@ program
   .action((...args) => {
     const version = args.slice(0, -1)[0];
     if (version) {
+      build(version);
     } else {
       askVersion();
     }

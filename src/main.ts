@@ -1,4 +1,13 @@
 import * as inquirer from 'inquirer';
+import * as path from 'path';
+import * as glob from 'glob';
+
+const build = async (version: string) => {
+  const buildPath = path.resolve(process.cwd(), '../*');
+  const buildDir = glob.sync(buildPath);
+  console.log('版本号为：', version);
+  console.log('当前目录下的文件夹', buildDir);
+};
 
 const askVersion = () => {
   inquirer
@@ -11,6 +20,7 @@ const askVersion = () => {
       if (task.version === '') {
         askVersion();
       } else {
+        build(task.version);
         console.log(task);
       }
     });
@@ -39,6 +49,7 @@ const askCommand = () => {
         // 开始 build
         case 'build':
           {
+            askVersion();
           }
           break;
         // 复制打包后的文件
@@ -52,4 +63,4 @@ const askCommand = () => {
     });
 };
 
-export { askCommand, askVersion };
+export { build, askCommand, askVersion };
