@@ -2,5 +2,15 @@
   "name": "gwgw-build-tool",
   "version": "0.0.1",
   "main": "index.js",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.11",
+    "@types/prettier": "^1.18.4",
+    "prettier": "^1.19.1",
+    "ts-node-dev": "^1.0.0-pre.44",
+    "typescript": "^3.7.2"
+  }
 }
