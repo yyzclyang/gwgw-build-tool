@@ -1,5 +1,21 @@
 import * as inquirer from 'inquirer';
 
+const askVersion = () => {
+  inquirer
+    .prompt({
+      type: 'input',
+      name: 'version',
+      message: '请输入要打包的版本：'
+    })
+    .then((task: { version: string }) => {
+      if (task.version === '') {
+        askVersion();
+      } else {
+        console.log(task);
+      }
+    });
+};
+
 const askCommand = () => {
   inquirer
     .prompt({
@@ -36,4 +52,4 @@ const askCommand = () => {
     });
 };
 
-export { askCommand };
+export { askCommand, askVersion };

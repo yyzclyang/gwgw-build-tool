@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as commander from 'commander';
-import { askCommand } from './main';
+import { askCommand, askVersion } from './main';
 
 const program = new commander.Command();
 
@@ -9,7 +9,10 @@ program
   .description('start build')
   .action((...args) => {
     const version = args.slice(0, -1)[0];
-    console.log(version);
+    if (version) {
+    } else {
+      askVersion();
+    }
   });
 
 if (process.argv.length === 2) {
