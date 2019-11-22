@@ -1,12 +1,41 @@
+import * as glob from 'glob';
 import * as inquirer from 'inquirer';
 import * as path from 'path';
-import * as glob from 'glob';
+import simplegit from 'simple-git/promise';
 
-const build = async (version: string) => {
+const getGitBranchByDirPath = (
+  dirPath: string
+): Promise<{ path: string; branch: Array<string> }> => {
+  const git = simplegit(dirPath);
+  return git
+    .branchLocal()
+    .then((branchInfo) => {
+      return { path: dirPath, branch: branchInfo.all };
+    })
+    .catch(() => {
+      return {
+        path: dirPath,
+        branch: []
+      };
+    });
+};
+
+const getDirPathByBranch = (checkedDir: string[], branch: string) => {
+  return Promise.all(
+    checkedDir.map((dirPath: string) => getGitBranchByDirPath(dirPath))
+  ).then((dirsBranchInfo) =>
+    dirsBranchInfo.filter((dirBranchInfo) =>
+      dirBranchInfo.branch.includes(branch)
+    )
+  );
+};
+
+const build = (version: string) => {
   const buildPath = path.resolve(process.cwd(), '../*');
   const buildDir = glob.sync(buildPath);
-  console.log('版本号为：', version);
-  console.log('当前目录下的文件夹', buildDir);
+  getDirPathByBranch(buildDir, version).then((res) => {
+    console.log(res);
+  });
 };
 
 const askVersion = () => {

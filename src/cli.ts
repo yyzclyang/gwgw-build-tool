@@ -7,7 +7,7 @@ program
   .command('build')
   .description('start build')
   .action((...args) => {
-    const version = args.slice(0, -1)[0];
+    const version = args[1][0];
     if (version) {
       build(version);
     } else {
