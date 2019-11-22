@@ -3,6 +3,7 @@ import * as inquirer from 'inquirer';
 import * as path from 'path';
 import simplegit from 'simple-git/promise';
 import * as shell from 'shelljs';
+import colors from 'colors';
 
 type DirBranchInfo = { path: string; branch: Array<string>; current: string };
 
@@ -38,18 +39,18 @@ const getDirPathByBranch = (checkedDir: string[], branch: string) => {
 
 const buildProject = (path: string) => {
   const projectName = path.split('/').pop();
-  console.log(`项目 ${projectName} 开始执行打包...`);
+  console.log(colors.green(`\n项目 ${projectName} 开始执行打包...\n`));
   shell.cd(path);
   if (shell.exec(`yarn build`).code !== 0) {
-    shell.echo(`项目 ${projectName} 打包错误`);
+    console.log(colors.bgRed(colors.white(`项目 ${projectName} 打包错误`)));
     shell.exit(1);
   }
   shell.cd('..');
-  console.log(`项目 ${projectName} 打包完毕`);
+  console.log(colors.green(`\n项目 ${projectName} 打包完毕`));
 };
 
 const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
-  console.log('开始拷贝打包文件');
+  console.log(colors.yellow('\n开始拷贝打包文件'));
   shell.cd(path.resolve(process.cwd(), '.'));
   shell.rm('-rf', './gwgw-build-dist');
   const copyDir = dirBranchInfoArr.map((dirBranchInfo) => {
@@ -58,14 +59,20 @@ const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
   const targetDir = path.resolve(process.cwd(), './gwgw-build-dist');
   shell.mkdir('-p', targetDir);
   shell.cp('-Rf', copyDir, targetDir);
-  console.log('拷贝完毕');
-  shell.exit(0);
+  console.log(colors.yellow('\n项目全部拷贝完毕'));
+  console.log(colors.yellow('\n-------------------------'));
 };
 
 const performBuildCommand = (
   dirBranchInfoArr: Array<DirBranchInfo>,
   version: string
 ) => {
+  console.log(
+    colors.red(
+      `\n开始执行打包拷贝，整个过程大概持续 ${dirBranchInfoArr.length} 分钟`
+    )
+  );
+  const startTime = new Date().getTime();
   dirBranchInfoArr.map((dirBranchInfo) => {
     if (dirBranchInfo.current !== version) {
       const git = simplegit(dirBranchInfo.path);
@@ -76,8 +83,14 @@ const performBuildCommand = (
       buildProject(dirBranchInfo.path);
     }
   });
-  console.log('全部打包完毕');
+  console.log(colors.green('\n项目全部打包完毕'));
+  console.log(colors.green('\n-------------------------'));
   copyBuildFile(dirBranchInfoArr);
+  const endTime = new Date().getTime();
+  console.log(
+    colors.green(`\n完成，整个过程耗时约：${(endTime - startTime) / 1000}秒`)
+  );
+  shell.exit(0);
   process.exit(0);
 };
 
@@ -107,11 +120,12 @@ const askBuildProject = (
       switch (select.project) {
         case 'custom':
           {
-            console.log('可选择仓库列表为：');
+            console.log(colors.white(colors.bgBlue('\n可选择仓库列表为：\n')));
             dirBranchInfoArr.map((dirBranchInfo, index) => {
               const dirName = dirBranchInfo.path.split('/').pop();
               console.log(`${index}. ${dirName}`);
             });
+            console.log('');
             inquirer
               .prompt({
                 type: 'input',
@@ -174,8 +188,7 @@ const askCommand = () => {
       message: '请选择你要进行的操作?',
       choices: [
         { name: '退出', value: 'quit' },
-        { name: '开始 build', value: 'build' },
-        { name: '开始复制 dist', value: 'copy' }
+        { name: '开始打包', value: 'build' }
       ]
     })
     .then((select: { action: string }) => {
@@ -190,11 +203,6 @@ const askCommand = () => {
         case 'build':
           {
             askVersion();
-          }
-          break;
-        // 复制打包后的文件
-        case 'copy':
-          {
           }
           break;
         default: {
