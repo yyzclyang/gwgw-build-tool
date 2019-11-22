@@ -1,7 +1,7 @@
 {
   "name": "gwgw-build-tool",
-  "version": "0.0.1",
-  "main": "index.js",
+  "version": "0.0.2",
+  "main": "dist/cli.js",
   "bin": {
     "gwbt": "dist/cli.js"
   },

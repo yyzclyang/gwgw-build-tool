@@ -41,7 +41,7 @@ const buildProject = (path: string) => {
   const projectName = path.split('/').pop();
   console.log(colors.green(`\n项目 ${projectName} 开始执行打包...\n`));
   shell.cd(path);
-  if (shell.exec(`yarn build`).code !== 0) {
+  if (shell.exec(`npm run build`).code !== 0) {
     console.log(colors.bgRed(colors.white(`项目 ${projectName} 打包错误`)));
     shell.exit(1);
   }
