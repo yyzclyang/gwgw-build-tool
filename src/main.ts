@@ -133,10 +133,16 @@ const askBuildProject = (
                 message: '请输入要打包的仓库编号（多个仓库用空格分开）：'
               })
               .then((select: { project: string }) => {
-                const selectProjectList = select.project
-                  .split(' ')
-                  .filter((select) => select !== '')
-                  .map((select) => dirBranchInfoArr[parseInt(select, 10)]);
+                const selectProjectList = Array.from(
+                  new Set(
+                    select.project
+                      .split(' ')
+                      .map((value) => parseInt(value, 10))
+                      .filter(
+                        (value) => value >= 0 && value < dirBranchInfoArr.length
+                      )
+                  )
+                ).map((select) => dirBranchInfoArr[select]);
                 performBuildCommand(selectProjectList, branch);
               });
           }
@@ -178,7 +184,7 @@ const askVersion = (again = false) => {
     })
     .then((task: { version: string }) => {
       if (task.version === '') {
-        askVersion();
+        askVersion(true);
       } else {
         build(task.version);
       }
