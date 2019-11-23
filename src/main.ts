@@ -4,6 +4,8 @@ import * as path from 'path';
 import * as shell from 'shelljs';
 import colors from 'colors';
 import git, { DirBranchInfo } from './git';
+import gitRecordDb, { GitRecordDbType } from './gitRecordDb';
+import safeData from './safeData';
 
 const buildProject = (path: string) => {
   const projectName = path.split('/').pop();
@@ -22,7 +24,7 @@ const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
   shell.cd(path.resolve(process.cwd(), '.'));
   shell.rm('-rf', './gwgw-build-dist');
   const copyDir = dirBranchInfoArr.map((dirBranchInfo) => {
-    return dirBranchInfo.path + '/dist/*';
+    return path.resolve(dirBranchInfo.path, './dist/*');
   });
   const targetDir = path.resolve(process.cwd(), './gwgw-build-dist');
   shell.mkdir('-p', targetDir);
@@ -31,9 +33,10 @@ const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
   console.log(colors.yellow('\n-------------------------'));
 };
 
-const performBuildCommand = (
+const performBuildCommand = async (
   dirBranchInfoArr: Array<DirBranchInfo>,
-  branch: string
+  branch: string,
+  gitRecord?: GitRecordDbType
 ) => {
   console.log(
     colors.red(
@@ -42,14 +45,42 @@ const performBuildCommand = (
   );
   const startTime = new Date().getTime();
   dirBranchInfoArr.map((dirBranchInfo) => {
-    if (dirBranchInfo.current !== branch) {
+    const projectName = dirBranchInfo.path.split('/').pop();
+    // 当前分支的 commit 等于之前存储的 commit，说明没发生变化
+    if (
+      gitRecord &&
+      gitRecord[projectName!] &&
+      safeData(() => gitRecord[projectName!][branch].commit) ==
+        dirBranchInfo.branches[branch].commit
+    ) {
+      console.log(
+        colors.green(
+          `\n项目 ${projectName} ${branch} 分支的 commit 与上次构建时一样，无需再次构建`
+        )
+      );
+    } else if (dirBranchInfo.current !== branch) {
       git.checkout(dirBranchInfo.path, branch).then(() => {
         buildProject(dirBranchInfo.path);
       });
     } else {
       buildProject(dirBranchInfo.path);
     }
+    if (gitRecord) {
+      gitRecord[projectName!] = {
+        ...gitRecord[projectName!],
+        ...{
+          [branch]: {
+            branch: branch,
+            commit: dirBranchInfo.branches[branch].commit,
+            lastTime: new Date().getTime()
+          }
+        }
+      };
+    }
   });
+  if (gitRecord) {
+    await gitRecordDb.write(gitRecord);
+  }
   console.log(colors.green('\n项目全部打包完毕'));
   console.log(colors.green('\n-------------------------'));
   copyBuildFile(dirBranchInfoArr);
@@ -63,7 +94,8 @@ const performBuildCommand = (
 
 const askBuildProject = (
   dirBranchInfoArr: Array<DirBranchInfo>,
-  branch: string
+  branch: string,
+  gitRecord?: GitRecordDbType
 ) => {
   inquirer
     .prompt({
@@ -110,26 +142,30 @@ const askBuildProject = (
                       )
                   )
                 ).map((select) => dirBranchInfoArr[select]);
-                // performBuildCommand(selectProjectList, branch);
+                performBuildCommand(selectProjectList, branch, gitRecord);
               });
           }
           break;
         case 'all':
           {
-            performBuildCommand(dirBranchInfoArr, branch);
+            performBuildCommand(dirBranchInfoArr, branch, gitRecord);
           }
           break;
         default: {
           performBuildCommand(
             [dirBranchInfoArr[parseInt(select.project, 10)]],
-            branch
+            branch,
+            gitRecord
           );
         }
       }
     });
 };
 
-const build = (version: string) => {
+const build = async (version: string) => {
+  const gitRecordRes = await gitRecordDb.read().catch(() => {
+    return { code: '-1', data: undefined };
+  });
   const buildPath = path.resolve(process.cwd(), './*');
   const buildDir = glob.sync(buildPath);
   git.getDirPathByBranch(buildDir, version).then((dirBranchInfoArr) => {
@@ -137,7 +173,7 @@ const build = (version: string) => {
       console.log(colors.red(`没有符合仓库有当前版本的分支\n`));
       askVersion(true);
     } else {
-      askBuildProject(dirBranchInfoArr, version);
+      askBuildProject(dirBranchInfoArr, version, gitRecordRes.data);
     }
   });
 };

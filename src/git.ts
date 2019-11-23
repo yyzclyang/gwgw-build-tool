@@ -20,7 +20,6 @@ const getDirBranchInfoByDirPath = (dirPath: string): Promise<DirBranchInfo> => {
   return git
     .branchLocal()
     .then((BranchSummary) => {
-      console.log(BranchSummary);
       return {
         path: dirPath,
         branchList: BranchSummary.all,
