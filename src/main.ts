@@ -1,41 +1,9 @@
 import * as glob from 'glob';
 import * as inquirer from 'inquirer';
 import * as path from 'path';
-import simplegit from 'simple-git/promise';
 import * as shell from 'shelljs';
 import colors from 'colors';
-
-type DirBranchInfo = { path: string; branch: Array<string>; current: string };
-
-const getDirBranchInfoByDirPath = (dirPath: string): Promise<DirBranchInfo> => {
-  const git = simplegit(dirPath);
-  return git
-    .branchLocal()
-    .then((branchInfo) => {
-      return {
-        path: dirPath,
-        branch: branchInfo.all,
-        current: branchInfo.current
-      };
-    })
-    .catch(() => {
-      return {
-        path: dirPath,
-        branch: [],
-        current: ''
-      };
-    });
-};
-
-const getDirPathByBranch = (checkedDir: string[], branch: string) => {
-  return Promise.all(
-    checkedDir.map((dirPath: string) => getDirBranchInfoByDirPath(dirPath))
-  ).then((dirBranchInfoArr) =>
-    dirBranchInfoArr.filter((dirBranchInfo) =>
-      dirBranchInfo.branch.includes(branch)
-    )
-  );
-};
+import git, { DirBranchInfo } from './git';
 
 const buildProject = (path: string) => {
   const projectName = path.split('/').pop();
@@ -75,8 +43,7 @@ const performBuildCommand = (
   const startTime = new Date().getTime();
   dirBranchInfoArr.map((dirBranchInfo) => {
     if (dirBranchInfo.current !== branch) {
-      const git = simplegit(dirBranchInfo.path);
-      return git.checkout(branch).then(() => {
+      git.checkout(dirBranchInfo.path, branch).then(() => {
         buildProject(dirBranchInfo.path);
       });
     } else {
@@ -143,7 +110,7 @@ const askBuildProject = (
                       )
                   )
                 ).map((select) => dirBranchInfoArr[select]);
-                performBuildCommand(selectProjectList, branch);
+                // performBuildCommand(selectProjectList, branch);
               });
           }
           break;
@@ -165,7 +132,7 @@ const askBuildProject = (
 const build = (version: string) => {
   const buildPath = path.resolve(process.cwd(), './*');
   const buildDir = glob.sync(buildPath);
-  getDirPathByBranch(buildDir, version).then((dirBranchInfoArr) => {
+  git.getDirPathByBranch(buildDir, version).then((dirBranchInfoArr) => {
     if (dirBranchInfoArr.length === 0) {
       console.log(colors.red(`没有符合仓库有当前版本的分支\n`));
       askVersion(true);
