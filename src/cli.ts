@@ -1,18 +1,14 @@
 #!/usr/bin/env node
 import * as commander from 'commander';
-import { build, askCommand, askVersion } from './main';
+import { build, askCommand } from './main';
 const program = new commander.Command();
 
 program
-  .command('build')
+  .command('build <version>')
   .description('start build')
-  .action((...args) => {
-    const version = args[1] ? args[1][0] : undefined;
-    if (version) {
-      build(version);
-    } else {
-      askVersion();
-    }
+  .option('-f, --force', '强制重新构建')
+  .action((version, cmdObj) => {
+    build(version, Boolean(cmdObj.force));
   });
 
 if (process.argv.length === 2) {

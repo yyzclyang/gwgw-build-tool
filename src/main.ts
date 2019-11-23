@@ -36,6 +36,7 @@ const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
 const performBuildCommand = async (
   dirBranchInfoArr: Array<DirBranchInfo>,
   branch: string,
+  force: boolean,
   gitRecord?: GitRecordDbType
 ) => {
   console.log(
@@ -48,6 +49,7 @@ const performBuildCommand = async (
     const projectName = dirBranchInfo.path.split('/').pop();
     // 当前分支的 commit 等于之前存储的 commit，说明没发生变化
     if (
+      !force &&
       gitRecord &&
       gitRecord[projectName!] &&
       safeData(() => gitRecord[projectName!][branch].commit) ==
@@ -95,6 +97,7 @@ const performBuildCommand = async (
 const askBuildProject = (
   dirBranchInfoArr: Array<DirBranchInfo>,
   branch: string,
+  force: boolean,
   gitRecord?: GitRecordDbType
 ) => {
   inquirer
@@ -142,19 +145,25 @@ const askBuildProject = (
                       )
                   )
                 ).map((select) => dirBranchInfoArr[select]);
-                performBuildCommand(selectProjectList, branch, gitRecord);
+                performBuildCommand(
+                  selectProjectList,
+                  branch,
+                  force,
+                  gitRecord
+                );
               });
           }
           break;
         case 'all':
           {
-            performBuildCommand(dirBranchInfoArr, branch, gitRecord);
+            performBuildCommand(dirBranchInfoArr, branch, force, gitRecord);
           }
           break;
         default: {
           performBuildCommand(
             [dirBranchInfoArr[parseInt(select.project, 10)]],
             branch,
+            force,
             gitRecord
           );
         }
@@ -162,7 +171,7 @@ const askBuildProject = (
     });
 };
 
-const build = async (version: string) => {
+const build = async (version: string, force = false) => {
   const gitRecordRes = await gitRecordDb.read().catch(() => {
     return { code: '-1', data: undefined };
   });
@@ -173,9 +182,40 @@ const build = async (version: string) => {
       console.log(colors.red(`没有符合仓库有当前版本的分支\n`));
       askVersion(true);
     } else {
-      askBuildProject(dirBranchInfoArr, version, gitRecordRes.data);
+      askBuildProject(dirBranchInfoArr, version, force, gitRecordRes.data);
     }
   });
+};
+
+const askForce = (version: string) => {
+  inquirer
+    .prompt({
+      type: 'list',
+      name: 'force',
+      message: '是否强制构建（无视上一次构建的 commit 记录）？',
+      choices: [
+        { name: '否', value: 'false' },
+        { name: '是', value: 'true' }
+      ]
+    })
+    .then(({ force }) => {
+      switch (force) {
+        // 退出
+        case 'false':
+          {
+            build(version, false);
+          }
+          break;
+        // 开始 build
+        case 'true':
+          {
+            build(version, true);
+          }
+          break;
+        default: {
+        }
+      }
+    });
 };
 
 const askVersion = (again = false) => {
@@ -185,11 +225,11 @@ const askVersion = (again = false) => {
       name: 'version',
       message: `请${again ? '重新' : ''}输入要打包的版本：`
     })
-    .then((task: { version: string }) => {
-      if (task.version === '') {
+    .then(({ version }) => {
+      if (version === '') {
         askVersion(true);
       } else {
-        build(task.version);
+        askForce(version);
       }
     });
 };
@@ -205,8 +245,8 @@ const askCommand = () => {
         { name: '开始打包', value: 'build' }
       ]
     })
-    .then((select: { action: string }) => {
-      switch (select.action) {
+    .then(({ action }) => {
+      switch (action) {
         // 退出
         case 'quit':
           {
