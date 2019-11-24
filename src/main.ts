@@ -122,7 +122,9 @@ const performBuildCommand = async (
   copyBuildFile(dirBranchInfoArr);
   const endTime = new Date().getTime();
   console.log(
-    colors.green(`\n完成，整个过程耗时约：${(endTime - startTime) / 1000}秒`)
+    colors.green(
+      `\n完成整个构建过程，共耗时约：${(endTime - startTime) / 1000}秒`
+    )
   );
   shell.exit(0);
   process.exit(0);
@@ -213,7 +215,7 @@ const build = async (version: string, force = false) => {
   const buildDir = glob.sync(buildPath);
   git.getDirPathByBranch(buildDir, version).then((dirBranchInfoArr) => {
     if (dirBranchInfoArr.length === 0) {
-      console.log(colors.red(`没有符合仓库有当前版本的分支\n`));
+      console.log(colors.red(`没有拥有当前版本分支的仓库\n`));
       askVersion(true);
     } else {
       askBuildProject(dirBranchInfoArr, version, force, gitRecordRes.data);
