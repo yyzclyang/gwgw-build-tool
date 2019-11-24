@@ -33,11 +33,40 @@ const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
   console.log(colors.yellow('\n-------------------------'));
 };
 
+const projectShouldBuild = (
+  force: boolean,
+  projectName: string,
+  branch: string,
+  dirBranchInfo: DirBranchInfo,
+  gitRecord: GitRecordDbType | undefined
+) => {
+  // 如果强制构建或者读取本地 gitRecord 缓存报错
+  if (force || gitRecord === undefined) {
+    return true;
+  }
+
+  const lastBuildCommit = safeData(
+    () => gitRecord[projectName!][branch].commit
+  );
+  const currentCommit = dirBranchInfo.branches[branch].commit;
+  // 当前分支的 commit 等于之前存储记录的 commit，说明分支没发生变化
+  if (lastBuildCommit !== currentCommit) {
+    return true;
+  } else {
+    console.log(
+      colors.green(
+        `\n项目 ${projectName} 的 ${branch} 分支当前的 commit 与上次构建时一样，无需再次构建`
+      )
+    );
+    return false;
+  }
+};
+
 const performBuildCommand = async (
   dirBranchInfoArr: Array<DirBranchInfo>,
   branch: string,
   force: boolean,
-  gitRecord?: GitRecordDbType
+  gitRecord: GitRecordDbType | undefined
 ) => {
   console.log(
     colors.red(
@@ -47,37 +76,34 @@ const performBuildCommand = async (
   const startTime = new Date().getTime();
   dirBranchInfoArr.map((dirBranchInfo) => {
     const projectName = dirBranchInfo.path.split('/').pop();
-    // 当前分支的 commit 等于之前存储的 commit，说明没发生变化
-    if (
-      !force &&
-      gitRecord &&
-      gitRecord[projectName!] &&
-      safeData(() => gitRecord[projectName!][branch].commit) ==
-        dirBranchInfo.branches[branch].commit
-    ) {
-      console.log(
-        colors.green(
-          `\n项目 ${projectName} ${branch} 分支的 commit 与上次构建时一样，无需再次构建`
-        )
-      );
-    } else if (dirBranchInfo.current !== branch) {
-      git.checkout(dirBranchInfo.path, branch).then(() => {
+    const shouldBuild = projectShouldBuild(
+      force,
+      projectName!,
+      branch,
+      dirBranchInfo,
+      gitRecord
+    );
+    if (shouldBuild) {
+      if (dirBranchInfo.current !== branch) {
+        git.checkout(dirBranchInfo.path, branch).then(() => {
+          buildProject(dirBranchInfo.path);
+        });
+      } else {
         buildProject(dirBranchInfo.path);
-      });
-    } else {
-      buildProject(dirBranchInfo.path);
-    }
-    if (gitRecord) {
-      gitRecord[projectName!] = {
-        ...gitRecord[projectName!],
-        ...{
-          [branch]: {
-            branch: branch,
-            commit: dirBranchInfo.branches[branch].commit,
-            lastTime: new Date().getTime()
+      }
+      // 如果读取记录时没出错，就记录本次构建的信息
+      if (gitRecord) {
+        gitRecord[projectName!] = {
+          ...gitRecord[projectName!],
+          ...{
+            [branch]: {
+              branch: branch,
+              commit: dirBranchInfo.branches[branch].commit,
+              lastBuildTime: new Date().getTime()
+            }
           }
-        }
-      };
+        };
+      }
     }
   });
   if (gitRecord) {
@@ -98,7 +124,7 @@ const askBuildProject = (
   dirBranchInfoArr: Array<DirBranchInfo>,
   branch: string,
   force: boolean,
-  gitRecord?: GitRecordDbType
+  gitRecord: GitRecordDbType | undefined
 ) => {
   inquirer
     .prompt({

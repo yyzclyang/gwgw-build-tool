@@ -7,7 +7,7 @@ const dbPath = path.join(homeDir, '.gwgw-build-tool-db');
 interface GitRecordType {
   branch: string;
   commit: string;
-  lastTime: number;
+  lastBuildTime: number;
 }
 
 export interface GitRecordDbType {
