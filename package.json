@@ -1,6 +1,6 @@
 {
   "name": "gwgw-build-tool",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "dist/cli.js",
   "bin": {
     "gwbt": "dist/cli.js"
