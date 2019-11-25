@@ -49,16 +49,9 @@ const projectShouldBuild = (
     () => gitRecord[projectName!][branch].commit
   );
   const currentCommit = dirBranchInfo.branches[branch].commit;
-  const lastBuildTime = safeData(
-    () => gitRecord[projectName!][branch].lastBuildTime
-  );
-  const currentTime = new Date().getTime();
 
   // 当前分支的 commit 等于之前存储记录的 commit，说明分支没发生变化
-  if (
-    lastBuildCommit !== currentCommit ||
-    (currentTime - lastBuildTime) / 1000 / 3600 / 24 > 3
-  ) {
+  if (lastBuildCommit !== currentCommit) {
     return true;
   } else {
     console.log(
