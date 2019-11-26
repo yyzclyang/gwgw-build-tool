@@ -37,7 +37,7 @@ const getDirBranchInfoByDirPath = (dirPath: string): Promise<DirBranchInfo> => {
     });
 };
 
-const getDirPathByBranch = (checkedDir: string[], branch: string) => {
+const screeningDirPathByBranch = (checkedDir: string[], branch: string) => {
   return Promise.all(
     checkedDir.map((dirPath: string) => getDirBranchInfoByDirPath(dirPath))
   ).then((dirBranchInfoArr) =>
@@ -52,8 +52,10 @@ const checkout = (path: string, branch: string) => {
   return git.checkout(branch);
 };
 
-export default {
+const git = {
   getDirBranchInfoByDirPath,
-  getDirPathByBranch,
+  screeningDirPathByBranch,
   checkout
 };
+
+export default git;

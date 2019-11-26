@@ -4,20 +4,20 @@ const fs = require('fs');
 
 const dbPath = path.join(homeDir, '.gwgw-build-tool-db');
 
-interface GitRecordType {
+interface BuildRecordType {
   branch: string;
   commit: string;
   lastBuildTime: number;
 }
 
-export interface GitRecordDbType {
+export interface BuildRecordDbType {
   [repository: string]: {
-    [branch: string]: GitRecordType;
+    [branch: string]: BuildRecordType;
   };
 }
 
-const gitRecordDb = {
-  read(path = dbPath): Promise<{ code: string; data: GitRecordDbType }> {
+const buildRecordDb = {
+  read(path = dbPath): Promise<{ code: string; data: BuildRecordDbType }> {
     return new Promise((resolve, reject) => {
       fs.readFile(
         path,
@@ -27,7 +27,7 @@ const gitRecordDb = {
             return reject(err);
           }
 
-          let gitRecord: GitRecordDbType;
+          let gitRecord: BuildRecordDbType;
           try {
             gitRecord = JSON.parse(data.toString());
           } catch (err) {
@@ -55,4 +55,4 @@ const gitRecordDb = {
   }
 };
 
-export default gitRecordDb;
+export default buildRecordDb;
