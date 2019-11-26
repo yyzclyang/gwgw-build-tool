@@ -9,16 +9,18 @@ import safeData from './safeData';
 
 const COMMAND_PATH = process.cwd();
 
-const buildProject = (path: string) => {
+const buildProject = (path: string, ranking: string) => {
   const projectName = path.split('/').pop();
-  console.log(colors.green(`\n项目 ${projectName} 开始执行打包...\n`));
+  console.log(
+    colors.green(`\n${ranking}：项目 ${projectName} 开始执行打包...\n`)
+  );
   shell.cd(path);
   if (shell.exec(`npm run build`).code !== 0) {
     console.log(colors.bgRed(colors.white(`项目 ${projectName} 打包错误`)));
     shell.exit(1);
   }
   // shell.cd('..');
-  console.log(colors.green(`\n项目 ${projectName} 打包完毕`));
+  console.log(colors.green(`\n${ranking}：项目 ${projectName} 打包完毕`));
 };
 
 const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
@@ -40,7 +42,8 @@ const projectShouldBuild = (
   projectName: string,
   branch: string,
   dirBranchInfo: DirBranchInfo,
-  buildRecord: BuildRecordDbType | undefined
+  buildRecord: BuildRecordDbType | undefined,
+  ranking: string
 ) => {
   // 如果强制构建或者读取本地 buildRecord 缓存报错
   if (force || buildRecord === undefined) {
@@ -62,7 +65,7 @@ const projectShouldBuild = (
   } else {
     console.log(
       colors.green(
-        `\n项目 ${projectName} 上次构建时的分支和本次一致，且 ${branch} 分支当前的 commit 与上次构建时一样，无需再次构建`
+        `\n${ranking}：项目 ${projectName} 上次构建时的分支和本次一致，且 ${branch} 分支当前的 commit 与上次构建时一样，无需再次构建`
       )
     );
     return false;
@@ -75,28 +78,29 @@ const performBuildCommand = async (
   force: boolean,
   buildRecord: BuildRecordDbType | undefined
 ) => {
+  const dirArrLength = dirBranchInfoArr.length;
   console.log(
-    colors.red(
-      `\n开始执行打包拷贝，整个过程大概持续 ${dirBranchInfoArr.length} 分钟`
-    )
+    colors.red(`\n开始执行打包拷贝，整个过程大概持续 ${dirArrLength} 分钟`)
   );
   const startTime = new Date().getTime();
-  dirBranchInfoArr.map((dirBranchInfo) => {
+  dirBranchInfoArr.map((dirBranchInfo, index) => {
     const projectName = dirBranchInfo.path.split('/').pop();
+    const ranking = `[${index + 1}/${dirArrLength}]`;
     const shouldBuild = projectShouldBuild(
       force,
       projectName!,
       branch,
       dirBranchInfo,
-      buildRecord
+      buildRecord,
+      ranking
     );
     if (shouldBuild) {
       if (dirBranchInfo.current !== branch) {
         git.checkout(dirBranchInfo.path, branch).then(() => {
-          buildProject(dirBranchInfo.path);
+          buildProject(dirBranchInfo.path, ranking);
         });
       } else {
-        buildProject(dirBranchInfo.path);
+        buildProject(dirBranchInfo.path, ranking);
       }
       // 如果读取记录时没出错，就记录本次构建的信息
       if (buildRecord) {
@@ -122,9 +126,16 @@ const performBuildCommand = async (
   console.log(colors.green('\n-------------------------'));
   copyBuildFile(dirBranchInfoArr);
   const endTime = new Date().getTime();
+
+  const duration = (endTime - startTime) / 1000;
+  const minutes = Math.floor(duration / 60);
+  const seconds = Number.prototype.toFixed.call(duration % 60, 3);
+
   console.log(
     colors.green(
-      `\n完成整个构建过程，共耗时约：${(endTime - startTime) / 1000}秒`
+      `\n完成整个构建过程，共耗时约：${
+        minutes ? minutes + ' 分钟 ' : ''
+      }${seconds} 秒`
     )
   );
   shell.exit(0);
