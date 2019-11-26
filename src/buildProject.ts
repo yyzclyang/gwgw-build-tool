@@ -47,18 +47,22 @@ const projectShouldBuild = (
     return true;
   }
 
+  const lastBuildBranch = safeData(
+    () => buildRecord[projectName].lastBuildBranch
+  );
   const lastBuildCommit = safeData(
-    () => buildRecord[projectName!][branch].commit
+    () => buildRecord[projectName].branches[branch].commit
   );
   const currentCommit = dirBranchInfo.branches[branch].commit;
 
+  // 上次构建时的分支不等于当前的分支
   // 当前分支的 commit 等于之前存储记录的 commit，说明分支没发生变化
-  if (lastBuildCommit !== currentCommit) {
+  if (lastBuildBranch !== branch || lastBuildCommit !== currentCommit) {
     return true;
   } else {
     console.log(
       colors.green(
-        `\n项目 ${projectName} 的 ${branch} 分支当前的 commit 与上次构建时一样，无需再次构建`
+        `\n项目 ${projectName} 上次构建时的分支和本次一致，且 ${branch} 分支当前的 commit 与上次构建时一样，无需再次构建`
       )
     );
     return false;
@@ -98,7 +102,9 @@ const performBuildCommand = async (
       if (buildRecord) {
         buildRecord[projectName!] = {
           ...buildRecord[projectName!],
-          ...{
+          lastBuildBranch: branch,
+          branches: {
+            ...(safeData(() => buildRecord[projectName!].branches) || {}),
             [branch]: {
               branch: branch,
               commit: dirBranchInfo.branches[branch].commit,

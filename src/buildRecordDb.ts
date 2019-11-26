@@ -12,7 +12,8 @@ interface BuildRecordType {
 
 export interface BuildRecordDbType {
   [repository: string]: {
-    [branch: string]: BuildRecordType;
+    lastBuildBranch: string;
+    branches: { [branch: string]: BuildRecordType };
   };
 }
 
