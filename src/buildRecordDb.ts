@@ -2,7 +2,7 @@ const homeDir = process.env.HOME || require('os').homedir();
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(homeDir, '.gwgw-build-tool-db');
+const dbPath = path.join(homeDir, '.gwgw-build-tool.log');
 
 interface BuildRecordType {
   branch: string;

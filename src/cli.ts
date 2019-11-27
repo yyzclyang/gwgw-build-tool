@@ -9,7 +9,7 @@ program
   .description('start build')
   .option('-f, --force', '强制重新构建')
   .action((version, cmdObj) => {
-    build.startBuild(version, Boolean(cmdObj.force));
+    build.startBuildProcess(version, Boolean(cmdObj.force));
   });
 
 if (process.argv.length === 2) {

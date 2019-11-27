@@ -20,13 +20,13 @@ const askForce = (version: string) => {
         // 退出
         case 'false':
           {
-            build.startBuild(version, false);
+            build.startBuildProcess(version, false);
           }
           break;
         // 开始 build
         case 'true':
           {
-            build.startBuild(version, true);
+            build.startBuildProcess(version, true);
           }
           break;
         default: {

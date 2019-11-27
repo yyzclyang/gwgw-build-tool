@@ -23,14 +23,17 @@ const buildProject = (path: string, ranking: string) => {
   console.log(colors.green(`\n${ranking}：项目 ${projectName} 打包完毕`));
 };
 
-const copyBuildFile = (dirBranchInfoArr: Array<DirBranchInfo>) => {
+const copyBuildFile = (
+  dirBranchInfoArr: Array<DirBranchInfo>,
+  branch: string
+) => {
   console.log(colors.yellow('\n开始拷贝打包文件'));
   shell.cd(COMMAND_PATH);
-  shell.rm('-rf', './gwgw-build-dist');
+  shell.rm('-rf', `./gwgw-build-dist/${branch}`);
   const copyDir = dirBranchInfoArr.map((dirBranchInfo) => {
     return path.resolve(dirBranchInfo.path, './dist/*');
   });
-  const targetDir = path.resolve(process.cwd(), './gwgw-build-dist');
+  const targetDir = path.resolve(process.cwd(), `./gwgw-build-dist/${branch}`);
   shell.mkdir('-p', targetDir);
   shell.cp('-Rf', copyDir, targetDir);
   console.log(colors.yellow('\n项目全部拷贝完毕'));
@@ -124,7 +127,7 @@ const performBuildCommand = async (
   }
   console.log(colors.green('\n项目全部打包完毕'));
   console.log(colors.green('\n-------------------------'));
-  copyBuildFile(dirBranchInfoArr);
+  copyBuildFile(dirBranchInfoArr, branch);
   const endTime = new Date().getTime();
 
   const duration = (endTime - startTime) / 1000;
@@ -142,7 +145,7 @@ const performBuildCommand = async (
   process.exit(0);
 };
 
-const startBuild = async (version: string, force = false) => {
+const startBuildProcess = async (version: string, force = false) => {
   const gitRecordRes = await buildRecordDb.read().catch(() => {
     return { code: '-1', data: undefined };
   });
@@ -159,7 +162,7 @@ const startBuild = async (version: string, force = false) => {
 };
 
 const build = {
-  startBuild,
+  startBuildProcess,
   buildProject,
   performBuildCommand,
   projectShouldBuild,
